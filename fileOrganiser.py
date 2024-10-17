@@ -4,9 +4,13 @@ import os
 import shutil
 import argparse
 import logging
+from datetime import datetime
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+log_file = f"file_organizer_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s: %(message)s',
+                    handlers=[logging.FileHandler(log_file), logging.StreamHandler()])
 
 # Define file type categories
 FILE_TYPES = {
@@ -19,9 +23,10 @@ FILE_TYPES = {
     # Add more categories as needed
 }
 
-def organize_files(source_dir):
+def organize_files(source_dir, preview=False):
     """
     Organizes files in the given directory into subdirectories based on file type.
+    If preview is True, only prints what would be done without moving files.
     """
     # Iterate over all items in the directory
     for item in os.listdir(source_dir):
@@ -47,8 +52,11 @@ def organize_files(source_dir):
                 dest_path = os.path.join(dest_dir, item)
                 dest_path = handle_duplicates(dest_path)
                 
-                shutil.move(item_path, dest_path)
-                logging.info(f'Moved: {item} to {category}/')
+                if preview:
+                    logging.info(f'Would move: {item} to {category}/')
+                else:
+                    shutil.move(item_path, dest_path)
+                    logging.info(f'Moved: {item} to {category}/')
                 moved = True
                 break
         
@@ -60,8 +68,11 @@ def organize_files(source_dir):
             dest_path = os.path.join(dest_dir, item)
             dest_path = handle_duplicates(dest_path)
             
-            shutil.move(item_path, dest_path)
-            logging.info(f'Moved: {item} to Others/')
+            if preview:
+                logging.info(f'Would move: {item} to Others/')
+            else:
+                shutil.move(item_path, dest_path)
+                logging.info(f'Moved: {item} to Others/')
 
 def handle_duplicates(dest_path):
     """
@@ -85,6 +96,7 @@ def parse_arguments():
     """
     parser = argparse.ArgumentParser(description='Organize files in a directory.')
     parser.add_argument('source', help='Source directory to organize')
+    parser.add_argument('--preview', action='store_true', help='Preview changes without moving files')
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -92,7 +104,10 @@ if __name__ == "__main__":
     source_directory = args.source
 
     if os.path.isdir(source_directory):
-        organize_files(source_directory)
-        logging.info('File organization complete.')
+        organize_files(source_directory, preview=args.preview)
+        if args.preview:
+            logging.info('Preview complete. No files were moved.')
+        else:
+            logging.info('File organization complete.')
     else:
         logging.error(f'The directory {source_directory} does not exist.')
